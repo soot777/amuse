@@ -1,29 +1,41 @@
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', '*');
+  res.setHeader('Access-Control-Max-Age', '86400');
 
-  if (req.method === 'OPTIONS') return res.status(200).end();
-  if (req.method !== 'POST') return res.status(405).json({ error: 'POST만 허용' });
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'POST만 허용' });
+  }
 
   const API_KEY = process.env.ANTHROPIC_API_KEY;
-  if (!API_KEY) return res.status(500).json({ error: 'API 키 없음' });
+  if (!API_KEY) {
+    return res.status(500).json({ error: 'API 키 없음' });
+  }
 
-  const { messages, model, max_tokens } = req.body;
-  const response = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': API_KEY,
-      'anthropic-version': '2023-06-01'
-    },
-    body: JSON.stringify({
-      model: model || 'claude-sonnet-4-20250514',
-      max_tokens: max_tokens || 1000,
-      messages
-    })
-  });
+  try {
+    const { messages, model, max_tokens } = req.body;
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': API_KEY,
+        'anthropic-version': '2023-06-01'
+      },
+      body: JSON.stringify({
+        model: model || 'claude-sonnet-4-20250514',
+        max_tokens: max_tokens || 1000,
+        messages
+      })
+    });
 
-  const data = await response.json();
-  return res.status(response.status).json(data);
+    const data = await response.json();
+    return res.status(response.status).json(data);
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
 }
